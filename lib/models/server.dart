@@ -38,8 +38,22 @@ class Server {
       (data) {
         final message = String.fromCharCodes(data);
 
-        write(
-            'New client joined. (${client.remoteAddress.address}:${client.remotePort}) Sent data: $message');
+        List<String> args = message.split(':');
+
+        if (args.length > 1) {
+          switch (args[0]) {
+            case 'color':
+              client.write(args[1]);
+              write('Message (${args[1]}) sent');
+              break;
+            default:
+              write(
+                  'New client joined. (${client.remoteAddress.address}:${client.remotePort}) Sent data: $message');
+              break;
+          }
+        } else {
+          write('Sent data: $message');
+        }
         clients.add(client);
       },
       onDone: () {
