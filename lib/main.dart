@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:desktop_window/desktop_window.dart';
 import 'package:websocket_server/models/server.dart';
 import 'package:websocket_server/widgets/console_screen.dart';
 
@@ -31,17 +32,29 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   TextEditingController controller = TextEditingController();
   List<String> messages = [];
-  late Server server;
   FocusNode fn = FocusNode();
+  late Server server;
 
   @override
   void initState() {
-    server = Server(write: (text) {
+    server = Server(output: (data) {
       setState(() {
-        messages.add(text);
+        if (data.runtimeType != String) data = data.toString();
+        messages.add('[Server] $data');
       });
     });
+    windowInit();
     super.initState();
+  }
+
+  void windowInit() async {
+    await DesktopWindow.setMinWindowSize(const Size(300, 570));
+  }
+
+  @override
+  void dispose() {
+    fn.dispose();
+    super.dispose();
   }
 
   @override
@@ -76,7 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: () {
-                        server.close();
+                        server.stop();
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.all(20),

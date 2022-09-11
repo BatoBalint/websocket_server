@@ -1,70 +1,49 @@
 import 'dart:io';
+import 'package:socket_io/socket_io.dart' as socket_io;
 
 class Server {
-  final ip = InternetAddress.anyIPv4;
-  final port = 3000;
-  Function write;
-  late ServerSocket server;
+  Function output;
+  int port = 3000;
+  String ip = '';
+  socket_io.Server io = socket_io.Server();
   bool serverIsRunning = false;
 
-  Server({required this.write});
+  Server({required this.output}) {
+    init();
+  }
 
-  Future<void> start() async {
+  init() async {
+    var interface = await NetworkInterface.list();
+    ip = interface.first.addresses.first.address;
+    start();
+  }
+
+  start() {
     if (!serverIsRunning) {
-      server = await ServerSocket.bind(ip, port);
-      server.listen(handleConnection);
+      io.on('connection', (client) {
+        attachEventListeners(client);
+        output('Client joined: ${client.toString()}');
+      });
+      io.listen(port);
       serverIsRunning = true;
-
-      final n = await NetworkInterface.list();
-
-      write(
-          'Server started on: ${n.toList()[0].addresses.first.address}:$port');
     }
+    output('Websocket server started on $ip:$port');
   }
 
-  void close() {
+  attachEventListeners(client) {
+    client.on('test', (data) {
+      client.emit('testBack', data.toString());
+    });
+    client.on('laute', (data) {
+      client.emit('laute', 'HALOOOOOO');
+    });
+  }
+
+  stop() {
     if (serverIsRunning) {
-      server.close();
+      io.close();
+      output('Server closed');
       serverIsRunning = false;
-
-      write('Server closed.');
     }
-  }
-
-  List<Socket> clients = [];
-
-  void handleConnection(Socket client) {
-    client.listen(
-      (data) {
-        final message = String.fromCharCodes(data);
-
-        List<String> args = message.split(':');
-
-        if (args.length > 1) {
-          switch (args[0]) {
-            case 'color':
-              client.write(args[1]);
-              write('Message (${args[1]}) sent');
-              break;
-            default:
-              write(
-                  'New client joined. (${client.remoteAddress.address}:${client.remotePort}) Sent data: $message');
-              break;
-          }
-        } else {
-          write('Sent data: $message');
-        }
-        clients.add(client);
-      },
-      onDone: () {
-        client.close();
-        clients.remove(client);
-      },
-      onError: (error) {
-        client.close();
-        write('${client.remotePort} closed.');
-        clients.remove(client);
-      },
-    );
   }
 }
