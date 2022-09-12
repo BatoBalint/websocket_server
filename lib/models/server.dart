@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:io' as dart_io;
 import 'package:socket_io/socket_io.dart' as socket_io;
 
 class Server {
@@ -13,7 +13,7 @@ class Server {
   }
 
   init() async {
-    var interface = await NetworkInterface.list();
+    var interface = await dart_io.NetworkInterface.list();
     ip = interface.first.addresses.first.address;
     start();
   }
@@ -22,7 +22,7 @@ class Server {
     if (!serverIsRunning) {
       io.on('connection', (client) {
         attachEventListeners(client);
-        output('Client joined: ${client.toString()}');
+        output('Client joined: ${client.id.toString()}');
       });
       io.listen(port);
       serverIsRunning = true;
